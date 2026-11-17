@@ -23,5 +23,18 @@ class Dunedaqdataformats(Package):
     def url_for_version(self, version):
         return f"{self.git}/archive/v{version.underscored}.tar.gz"
 
+    @run_before("install")
+    def patch_cxx20_accumulate(self):
+        # C++20 std::accumulate moves the accumulator into the binary op, so a
+        # lambda taking a non-const lvalue reference (auto&) no longer binds.
+        # (Already fixed upstream in v4_4_0.)
+        for ver in ("v3_3_3", "v3_4_1", "v4_0_0"):
+            filter_file(
+                r"\[\]\(auto& a, auto& b\)",
+                "[](const auto& a, const auto& b)",
+                "include/daqdataformats/%s/Fragment.hpp" % ver,
+                ignore_absent=True,
+            )
+
     def install(self, spec, prefix):
         install_tree(self.stage.source_path, self.spec.prefix)
