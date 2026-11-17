@@ -68,9 +68,35 @@ class Dunecore(CMakePackage):
                     'find_package( nusimdata REQUIRED EXPORT )\nfind_package( gallery REQUIRED EXPORT )',
                     'CMakeLists.txt')
 
+        # ROOT 6.28's cling does `using namespace std`, which makes range-v3's
+        # unqualified `ranges::` ambiguous with std::ranges in C++20.  The
+        # dictionary headers only need WireReadoutGeom::Segment (a pair of
+        # points), so avoid parsing WireReadoutGeom.h (-> range-v3) in cling.
+        for hdr in ('ChannelGeo.h', 'IcebergChannelGeo.h'):
+            path = join_path('dunecore', 'Geometry', hdr)
+            filter_file(
+                r'#include "larcorealg/Geometry/WireReadoutGeom.h"',
+                '#ifdef __CLING__\n'
+                '#include "larcoreobj/SimpleTypesAndConstants/geo_vectors.h"\n'
+                '#else\n'
+                '#include "larcorealg/Geometry/WireReadoutGeom.h"\n'
+                '#endif',
+                path,
+            )
+            filter_file(
+                r'using EndPoints = geo::WireReadoutGeom::Segment;',
+                '#ifdef __CLING__\n'
+                '  using EndPoints = std::pair<geo::Point_t, geo::Point_t>;\n'
+                '#else\n'
+                '  using EndPoints = geo::WireReadoutGeom::Segment;\n'
+                '#endif',
+                path,
+            )
+
     depends_on("c", type="build")
     depends_on("cxx", type="build")
     depends_on("cetmodules@3", type="build")
+    depends_on("pkgconfig", type="build")  # cetmodules FindFFTW3 (via lardata) needs pkg-config
     depends_on("cmake", type="build")
     depends_on("art")
     depends_on("artdaq-core")
