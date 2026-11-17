@@ -100,7 +100,7 @@ class Duneopdet(CMakePackage):
         return args
 
     def setup_build_environment(self, spack_env):
-        with when("+tensorflow"):
+        if self.spec.satisfies("+tensorflow"):
             if os.path.exists(self.spec["py-tensorflow"].prefix.lib64):
                 spack_env.set("TENSORFLOW_DIR",
                     join_path(
