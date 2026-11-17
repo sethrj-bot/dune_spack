@@ -69,6 +69,7 @@ class Dunesim(CMakePackage):
     depends_on("cxx", type="build")
     depends_on("cmake", type="build")
     depends_on("cetmodules@3", type="build")
+    depends_on("pkgconfig", type="build")  # cetmodules FindFFTW3 (via lardata) needs pkg-config
 
     depends_on("art")
     depends_on("art-root-io")
@@ -90,6 +91,20 @@ class Dunesim(CMakePackage):
     depends_on("nurandom")
     depends_on("nugen")
     depends_on("nufinder")
+
+    def patch(self):
+        # H4BeamFileService calls TFile::Open but does not link ROOT; newer
+        # toolchains fail with an undefined reference at link time.
+        filter_file(
+            r'simple_plugin\(H4BeamFileService "service"',
+            'simple_plugin(H4BeamFileService "service" ROOT::RIO ROOT::Core',
+            "dunesim/EventGenerator/Utils/CMakeLists.txt",
+        )
+        filter_file(
+            r"^(\s*LIBRARIES ProtoDUNETriggeredBeamUtils)\s*$",
+            r"\1 ROOT::RIO ROOT::Core",
+            "dunesim/EventGenerator/Utils/CMakeLists.txt",
+        )
 
     def cmake_args(self):
         args = [
